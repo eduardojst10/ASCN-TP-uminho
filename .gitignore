@@ -1,0 +1,3 @@
+# exclude everything below
+.DS_STORE*
+ascn-2023-bf5b2c29833a.json
