@@ -25,22 +25,14 @@ all:
   ghost_port: 2368
 
   # Mail variables
-  ghost_mail_from: "pg47702@alunos.uminho.pt"
   ghost_mail_transport: "SMTP"
   ghost_mail_options_service: "Mailgun"
   ghost_mail_options_host: "smtp.mailgun.org"
-
-  ghost_admin_user: ascn
-  ghost_admin_password: \$2b\$10\$iVq/mTELwJ7uXb5LhxBUNuyK9U73.6mRwJCggfNCaBdpU4hRfKeP2
-  ghost_admin_email: ascn@example.com
     
   # database variables
   mysql_app: mysql
   mysql_host: "mysql-service"
   mysql_port_configmap: "3306"
-  mysql_user: "ghostuser"
-  mysql_user_password: "test123"
-  mysql_database: "ghostdb"
   mysql_port: 3306
 
   # script variables

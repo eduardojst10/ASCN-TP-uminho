@@ -4,7 +4,7 @@
 - name: Deploy Ghost and Database on cluster
   hosts: localhost
   vars_files:
-    - roles/secret/vars/vars.yml
+    - vars/vars.yml
   gather_facts: true
   roles:
       - secret
