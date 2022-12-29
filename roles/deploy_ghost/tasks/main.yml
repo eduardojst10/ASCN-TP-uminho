@@ -1,0 +1,216 @@
+---
+# Create a storage class to dynamically create the PVs, with GCS
+- name: Create a storage class for ghost dynamic storage (using GCS)
+  k8s:
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: ghost-storage
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ ghost_app }}"
+      provisioner: pd.csi.storage.gke.io
+      parameters:
+        type: pd-standard
+        replication-type: regional-pd # using regional cluster
+      volumeBindingMode: WaitForFirstConsumer
+
+# Create a PVC for Ghost
+- name: Create persistent volume claim (PVC) for ghost data
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ghost-pv-claim
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ ghost_app }}"
+      spec:
+        storageClassName: ghost-storage
+        accessModes:
+          - ReadWriteOnce # dynamic GCS needs to be readwriteonce
+        resources:
+          requests:
+            storage: 200Gi # min GCS storage is 200Gi
+
+# Horizontal Pod Autoscalling with 1 min Pod, 5 max
+- name: Create HorizontalPodAutoscaler for ghost
+  k8s:
+    state: present
+    definition:
+      apiVersion: autoscaling/v1
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: ghost-hpa
+        namespace: "{{ ghost_namespace }}"
+      spec:
+        maxReplicas: 5
+        minReplicas: 1
+        scaleTargetRef:
+          apiVersion: apps/v1
+          kind: Deployment
+          name: ghost
+        targetCPUUtilizationPercentage: 90
+
+# Create the Service before the Deployment
+- name: Create service to give external access to ghost app
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ ghost_service }}"
+        labels:
+          app: "{{ ghost_app }}"
+        namespace: "{{ ghost_namespace }}"
+        annotations:
+          cloud.google.com/load-balancer-type: "External"
+      spec:
+        type: LoadBalancer # regional cluster and load balancer
+        ports:
+          - port: "{{ ghost_port }}"
+            targetPort: "{{ ghost_port }}"
+            protocol: TCP
+        selector:
+          app: "{{ ghost_app }}"
+
+# Wait for the Service to be ready and have an external IP
+- name: Wait for the Service to be ready and have an external IP (checks every 5 secs)
+  # credits: https://stackoverflow.com/questions/35179410/how-to-wait-until-kubernetes-assigned-an-external-ip-to-a-loadbalancer-service
+  shell: sh {{ script_endpoint_path }} {{ ghost_service }}
+
+# Get the service we need and parse the 4th element of the 2nd line
+- name: Retrieve the External IP of the Service
+  shell: kubectl get svc {{ ghost_service }} | awk 'NR==2 {print $4}'
+  register: command_output
+
+# IP was retrieved, now update inventory variable
+- name: Set ghost_ip of inventory with External IP of the Service
+  set_fact:
+    ghost_ip: "{{ command_output.stdout }}"
+
+# Ghost Deployment
+- name: Deploy ghost
+  k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ ghost_deployment }}"
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ ghost_app }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: "{{ ghost_app }}"
+        template:
+          metadata:
+            labels:
+              app: "{{ ghost_app }}"
+          spec:
+            # application container creation, now that the external IP is retrieved
+            containers:
+              - name: ghost
+                image: ghost:5.14.1
+                imagePullPolicy: "IfNotPresent"
+                ports:
+                  - containerPort: "{{ ghost_port }}"
+                env:
+                  # development or production
+                  - name: "NODE_ENV"
+                    value: "production"
+                  # url: no DNS config, so http://IP:PORT
+                  - name: "url"
+                    value: "http://{{ ghost_ip }}:{{ ghost_port }}" # get both external IP and port
+                  # database configs
+                  - name: "database__client"
+                    value: "mysql"
+
+                  - name: "database__connection__host"
+                    value: "{{ mysql_host }}"
+
+                  - name: "database__connection__port"
+                    vvalue: "{{ mysql_port_configmap }}"
+
+                  - name: "database__connection__database"
+                    value: "{{ mysql_database }}"
+
+                  - name: "database__connection__user"
+                    value: "{{ mysql_user }}"
+
+                  - name: "database__connection__password"
+                    value: "{{ mysql_user_password }}"
+                  # mail configs
+                  # credentials
+                  - name: "mail__transport"
+                    value: "{{ ghost_mail_transport }}"
+
+                  - name: "mail__options__service"
+                    value: "{{ ghost_mail_options_service }}"
+
+                  - name: "mail__options__auth__user"
+                    valueFrom:
+                      secretKeyRef:
+                        name: ghost-credentials
+                        key: ghost_mail_options_auth_user
+
+                  - name: "mail__options__auth__pass"
+                    valueFrom:
+                      secretKeyRef:
+                        name: ghost-credentials
+                        key: ghost_mail_options_auth_pass
+
+                  - name: "mail__from"
+                    value: "{{ ghost_mail_from }}"
+
+                  - name: "mail__options__host"
+                    value: "{{ ghost_mail_options_host }}"
+
+                  - name: "mail__options__port"
+                    valueFrom:
+                      secretKeyRef:
+                        name: ghost-credentials
+                        key: ghost_mail_options_port
+
+                  - name: "mail__options__secure"
+                    valueFrom:
+                      secretKeyRef:
+                        name: ghost-credentials
+                        key: ghost_mail_options_secure
+                volumeMounts:
+                  - mountPath: /var/lib/ghost/content
+                    name: ghost-data
+            volumes:
+              - name: ghost-data
+                persistentVolumeClaim:
+                  claimName: ghost-pv-claim
+
+# Wait for the Deployment to be Available
+- name: Wait for the Deployment to be Available (checks every 5 secs)
+  shell: sh {{ script_deployment_path }} {{ ghost_deployment }}
+
+# We need the MySQL pod name to register a Ghost Admin
+- name: Retrieve the MySQL pod name
+  shell: kubectl get pods | grep {{ mysql_deployment }} | awk '{print $1}'
+  register: mysql_pod
+
+# wait a few moments to sync
+- name: Wait a few moments to sync (10 secs) before registering Ghost Admin
+  wait_for:
+    timeout: 10
+
+# Register Ghost Admin directly to database
+- name: Register Ghost Admin directly to database
+  shell: kubectl exec -it {{ mysql_pod.stdout }} -- mysql -u {{ mysql_user }} -p{{ mysql_user_password }} {{ mysql_database }} -e "UPDATE users SET name='{{ ghost_admin_user }}', password='{{ ghost_admin_password }}', email='{{ ghost_admin_email }}', status='active' WHERE id=1"
+  register: register
+  until: "register is not failed"
+  delay: 60
+  retries: 10

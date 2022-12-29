@@ -1,0 +1,13 @@
+---
+# Playbook to deploy Ghost and its components
+
+- name: Deploy Ghost and Database on cluster
+  hosts: localhost
+  vars_files:
+    - roles/secret/vars/vars.yml
+  gather_facts: true
+  roles:
+      - secret
+      - deploy_db
+      - deploy_ghost
+      #- monitoring

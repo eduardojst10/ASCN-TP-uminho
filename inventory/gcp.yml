@@ -1,0 +1,60 @@
+---
+all:
+ vars:
+
+  # GKE cluster variables
+  gcp_project: ascn-2023                      # ID of GCP Project
+  gcp_auth_kind: serviceaccount               # Do not change
+  gcp_cred_file: ascn-2023-bf5b2c29833a.json  # Path to service account keys (json file downloaded from GCP)
+
+  # one GKE regional cluster
+  gcp_cluster_name: ascn-cluster
+  gcp_region: us-west3            # region instead of zone (if one zone is not available, tries a different zone)
+  gcp_zone_a: us-west3-a
+  gcp_zone_b: us-west3-b
+  gcp_zone_c: us-west3-c
+  gcp_image_type: ubuntu_containerd
+  gcp_machine_type: e2-small           # Can be changed if necessary
+  gcp_disk_size_gb: 100                # Can be changed if necessary
+  gcp_initial_node_count: 1            # Number of nodes to create. Can be changed if necessary
+
+  # APP variables
+  ghost_ip: <GHOST_IP>     # this variable is updated on the Ghost Deployment role
+  ghost_namespace: ghost
+  ghost_app: ghost
+  ghost_port: 2368
+
+  # Mail variables
+  ghost_mail_from: "pg47702@alunos.uminho.pt"
+  ghost_mail_transport: "SMTP"
+  ghost_mail_options_service: "Mailgun"
+  ghost_mail_options_host: "smtp.mailgun.org"
+
+  ghost_admin_user: ascn
+  ghost_admin_password: \$2b\$10\$iVq/mTELwJ7uXb5LhxBUNuyK9U73.6mRwJCggfNCaBdpU4hRfKeP2
+  ghost_admin_email: ascn@example.com
+    
+  # database variables
+  mysql_app: mysql
+  mysql_host: "mysql-service"
+  mysql_port_configmap: "3306"
+  mysql_user: "ghostuser"
+  mysql_user_password: "test123"
+  mysql_database: "ghostdb"
+  mysql_port: 3306
+
+  # script variables
+  script_endpoint_path: scripts/check-endpoint.sh
+  script_deployment_path: scripts/check-deployment.sh
+  ghost_service: ghost-service
+  ghost_deployment: ghost-deployment
+  mysql_deployment: mysql-deployment
+
+  # test variables
+  delete_data: 'false'
+
+  # Kubernetes Secret Service variables
+  secret_ghost_mail_options_auth_user: <SECRET>
+  secret_ghost_mail_options_auth_pass: <SECRET>
+  secret_ghost_mail_options_port: <SECRET>
+  secret_ghost_mail_options_secure: <SECRET>

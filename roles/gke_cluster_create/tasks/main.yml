@@ -1,0 +1,78 @@
+---
+# Deploy a Regional Cluster
+- name: Create Google Kubernetes Engine Cluster
+  gcp_container_cluster:
+    name: "{{ gcp_cluster_name }}"
+    initial_node_count: "{{ gcp_initial_node_count }}"
+    node_config:
+      machine_type: "{{ gcp_machine_type }}"
+      disk_size_gb: "{{ gcp_disk_size_gb }}"
+      image_type: "{{ gcp_image_type }}"
+    location:  "{{ gcp_region }}" # regional cluster with three different zones
+    # This will enable the cluster to withstand the failure of a single zone, as 
+    # Kubernetes will automatically reschedule pods to other zones if the pods' 
+    # current zone becomes unavailable.
+    locations:
+      - "{{ gcp_zone_a }}"
+      - "{{ gcp_zone_b }}"
+      - "{{ gcp_zone_c}}"
+    project: "{{ gcp_project }}"
+    auth_kind: "{{ gcp_auth_kind }}"
+    service_account_file: "{{ gcp_cred_file }}"
+    state: present
+  register: cluster
+  until: "cluster is not failed"
+  delay: 60
+  retries: 3
+
+- name: Verify that the cluster was created
+  shell: gcloud container clusters describe  --project="{{ gcp_project}}"  --region="{{ gcp_region }}"  "{{ gcp_cluster_name }}"
+  register: results
+
+- name: Verify that the command succeeded
+  assert:
+    that:
+      - results.rc == 0
+
+- name: Create a node pool
+  gcp_container_node_pool:
+    name: default-pool
+    initial_node_count: "{{ gcp_initial_node_count }}"
+    autoscaling: # cluster autoscalling. Allows to scale the number of nodes with the amount of website requests
+      enabled: yes
+      max_node_count: 4
+      min_node_count: 1
+    cluster: "{{ cluster }}"
+    config:
+      machine_type: "{{ gcp_machine_type }}"
+      image_type: "{{ gcp_image_type }}"
+      disk_size_gb: "{{ gcp_disk_size_gb }}"
+    location: "{{ gcp_region }}"
+    project: "{{ gcp_project }}"
+    auth_kind: "{{ gcp_auth_kind }}"
+    service_account_file: "{{ gcp_cred_file }}"
+    state: present
+
+# Connect to a regional cluster
+- name: Connect to the cluster (update kubeconfig)"
+  shell: gcloud container clusters get-credentials  --project="{{ gcp_project}}"  --region="{{ gcp_region }}"  "{{ gcp_cluster_name }}"
+
+# Create a Kubernetes namespace for Ghost
+- name: Create a k8s namespace for Ghost
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ ghost_namespace }}"
+        labels:
+          name: "{{ ghost_namespace }}"
+
+# Change kubectl context to new namespace
+- name: Change Kubectl context to Ghost namespace
+  shell: kubectl config set-context --current --namespace=ghost
+
+# Update existing cluster with the manifests, based on regional cluster 
+- name: Update existing cluster with the manifests
+  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region1 }}

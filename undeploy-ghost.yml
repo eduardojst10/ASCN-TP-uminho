@@ -1,0 +1,24 @@
+---
+# Undeploy Ghost considering the variable to delete persistent data or not
+- name: Undeploy Ghost
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: Undeploy all Ghost Services, Pods, Deployments and HPA
+      shell: kubectl delete all --all -n ghost
+
+    - name: Undeploy all PVC and PV
+      shell: kubectl get pvc -o name | grep "ghost" | xargs -n 1 kubectl delete; 
+             kubectl get pv -o name | grep "ghost" | xargs -n 1 kubectl delete; 
+             kubectl get pvc -o name | grep "mysql" | xargs -n 1 kubectl delete; 
+             kubectl get pv -o name | grep "mysql" | xargs -n 1 kubectl delete
+      when: delete_data == 'true'
+
+    - name: Undeploy all StorageClass
+      shell: kubectl delete storageclass ghost-storage;
+             kubectl delete storageclass mysql-storage
+      when: delete_data == 'true'
+
+    - name: Undeploy all ConfigMap
+      shell: kubectl delete configmap mysql-config
+      when: delete_data == 'true'

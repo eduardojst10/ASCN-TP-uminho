@@ -1,0 +1,138 @@
+---
+- name: create config map for mysql
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: mysql-config
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ mysql_app }}"
+      data:
+        MYSQL_ALLOW_EMPTY_PASSWORD: "true" # only for dev purposes
+        MYSQL_HOST: "{{ mysql_host }}"
+        MYSQL_PORT: "{{ mysql_port_configmap }}"
+        MYSQL_USER: "{{ mysql_user }}"
+        MYSQL_PASSWORD: "{{ mysql_user_password }}"
+        MYSQL_DATABASE: "{{ mysql_database }}"
+
+# Create a storage class to dynamically create the PVs, with GCS
+- name: create a storage class for mysql dynamic storage (using GCS)
+  k8s:
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: mysql-storage
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ mysql_app }}"
+      provisioner: pd.csi.storage.gke.io
+      parameters:
+        type: pd-standard
+        replication-type: regional-pd # using regional cluster
+      volumeBindingMode: WaitForFirstConsumer
+
+# Create a PVC for MySQL
+- name: create persistent volume claim (PVC) 
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: mysql-pv-claim
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ mysql_app }}"
+      spec:
+        storageClassName: mysql-storage
+        accessModes:
+          - ReadWriteOnce # dynamic GCS needs to be readwriteonce
+        resources:
+          requests:
+            storage: 200Gi # min GCS storage is 200Gi
+
+# Horizontal Pod Autoscalling with 1 min Pod, 5 max
+- name: create HorizontalPodAutoscaler for mysql
+  k8s:
+    state: present
+    definition:
+      apiVersion: autoscaling/v1
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: mysql-hpa
+        namespace: "{{ ghost_namespace }}"
+      spec:
+        maxReplicas: 5
+        minReplicas: 1
+        scaleTargetRef:
+          apiVersion: apps/v1
+          kind: Deployment
+          name: mysql
+        targetCPUUtilizationPercentage: 90
+
+# Create the Service for MYSQL
+- name: create mysql service (give access to database inside the cluster)
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: mysql-service
+        namespace: "{{ ghost_namespace }}"
+        labels:
+          app: "{{ mysql_app }}"
+      spec:
+        type: NodePort # nodeport for regional cluster, so that nodes can communicate
+        ports:
+          - targetPort: "{{ mysql_port }}"
+            port: "{{ mysql_port }}"
+        selector:
+          app: "{{ mysql_app }}"
+
+# Deploy the MYSQL database
+- name: deploy mysql database
+  k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ mysql_deployment }}"
+        namespace: "{{ ghost_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: "{{ mysql_app }}"
+        template:
+          metadata:
+            labels:
+              app: "{{ mysql_app }}"
+          spec:
+            containers:
+              - name: mysql-container
+                image: mysql:8.0
+                imagePullPolicy: "IfNotPresent"
+                ports:
+                  - containerPort: "{{ mysql_port }}"
+                restart: always
+                envFrom:
+                  - configMapRef:
+                      name: mysql-config
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: ghostdb
+            volumes:
+              - name: ghostdb
+                persistentVolumeClaim:
+                  claimName: mysql-pv-claim
+
+# Wait for the Deployment to be Available
+- name: Wait for the mysql-deployment to be Available (checks every 5 secs)
+  shell: sh {{ script_deployment_path }} {{ mysql_deployment }}
