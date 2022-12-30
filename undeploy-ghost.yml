@@ -4,20 +4,27 @@
   hosts: localhost
   gather_facts: true
   tasks:
-    - name: Undeploy all Ghost Services, Pods, Deployments and HPA
+    - name: Delete all Services, Pods, Deployments and HPA from namespace 'ghost'
       shell: kubectl delete all --all -n ghost
 
-    - name: Undeploy all PVC and Compute Engine Persistent Disk
+    - name: Delete all PVC
       shell: kubectl get pvc -o name | grep "ghost" | xargs -n 1 kubectl delete;
              kubectl get pvc -o name | grep "mysql" | xargs -n 1 kubectl delete;
-             gcloud compute disks delete --quiet --region={{ gcp_region }} $(gcloud compute disks list --regions={{ gcp_region }} --filter="name:pvc*" --format="value(name)")
+      when: delete_data == 'true'
+    
+    - name: Delete Persistent Disks from Compute Engine
+      shell: gcloud compute disks delete --quiet --region={{ gcp_region }} $(gcloud compute disks list --regions={{ gcp_region }} --filter="name:pvc*" --format="value(name)")
       when: delete_data == 'true'
 
-    - name: Undeploy all StorageClass
+    - name: Delete all StorageClass
       shell: kubectl delete storageclass ghost-storage;
              kubectl delete storageclass mysql-storage
       when: delete_data == 'true'
 
-    - name: Undeploy all ConfigMap
+    - name: Delete ConfigMap deployed with mysql
       shell: kubectl delete configmap mysql-config
+      when: delete_data == 'true'
+
+    - name: Delete Kubernetes Secret
+      shell: kubectl delete secret ghost-credentials
       when: delete_data == 'true'
