@@ -1,10 +1,8 @@
 ---
-# Update existing cluster with the manifests, based on regional cluster 
-- name: Update existing cluster with the manifests
-  shell: gcloud container clusters update ascn-cluster-1 --enable-managed-prometheus --region {{ gcp_region1 }}
-
-- name: Scraping 
+# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet
+#- name: Update cluster to enable Managed Prometheus
+#  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region }}
 
 # Install the Custom Dashboard for Metric Evaluation
-- name: Install the Custom Dashboard
-  shell: gcloud monitoring dashboards create --config-from-file=roles/monitoring/files/custom_dashboard.json
+#- name: Install the Custom Dashboard
+#  shell: gcloud monitoring dashboards create --config-from-file=roles/monitoring/files/custom_dashboard.json

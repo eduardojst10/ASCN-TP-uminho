@@ -7,7 +7,16 @@
     - vars/vars.yml
   gather_facts: true
   roles:
-      - secret
-      - deploy_db
-      - deploy_ghost
-      #- monitoring
+    # setup monitoring agents (doesn't work with MacOS...)
+    #- role: googlecloudplatform.google_cloud_ops_agents
+    #  vars:
+    #    agent_type: monitoring
+    #- role: googlecloudplatform.google_cloud_ops_agents
+    #  vars:
+    #    agent_type: logging
+    # setup application
+    - secret
+    - deploy_db
+    - deploy_ghost
+    # setup custom dashboards for monitoring
+    #- monitoring

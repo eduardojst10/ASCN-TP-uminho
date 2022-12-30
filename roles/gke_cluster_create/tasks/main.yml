@@ -73,6 +73,6 @@
 - name: Change Kubectl context to Ghost namespace
   shell: kubectl config set-context --current --namespace=ghost
 
-# Update existing cluster with the manifests, based on regional cluster 
-- name: Update existing cluster with the manifests
-  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region1 }}
+# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet
+- name: Update cluster to enable Managed Prometheus
+  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region }}
