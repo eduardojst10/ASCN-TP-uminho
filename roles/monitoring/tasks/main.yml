@@ -3,6 +3,14 @@
 #- name: Update cluster to enable Managed Prometheus
 #  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region }}
 
+# Retrieve all the custom dashboards file names (only .json inside folder required!)
+- name: Get file names from roles/monitoring/files folder (this should have only dashboards jsons!)
+  find:
+    paths: roles/monitoring/files
+    file_type: file
+  register: file_names
+
 # Install the Custom Dashboard for Metric Evaluation
-#- name: Install the Custom Dashboard
-#  shell: gcloud monitoring dashboards create --config-from-file=roles/monitoring/files/custom_dashboard.json
+- name: Apply command to each file in array
+  shell: gcloud monitoring dashboards create --config-from-file={{ item.path }}
+  with_items: "{{ file_names.files }}"
