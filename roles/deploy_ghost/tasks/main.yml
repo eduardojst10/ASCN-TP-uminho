@@ -1,6 +1,6 @@
 ---
 # Create a storage class to dynamically create the PVs, with GCS
-- name: Create a storage class for ghost dynamic storage (using GCS)
+- name: Create a storage class for ghost dynamic storage using Compute Engine CSI driver
   k8s:
     state: present
     definition:
@@ -32,10 +32,10 @@
       spec:
         storageClassName: ghost-storage
         accessModes:
-          - ReadWriteOnce # dynamic GCS needs to be readwriteonce
+          - ReadWriteOnce
         resources:
           requests:
-            storage: 200Gi # min GCS storage is 200Gi
+            storage: 200Gi # min is 200GB for GCE persistent disk
 
 # Horizontal Pod Autoscalling with 1 min Pod, 5 max
 - name: Create HorizontalPodAutoscaler for ghost

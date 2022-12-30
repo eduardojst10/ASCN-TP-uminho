@@ -6,3 +6,11 @@
   gather_facts: false
   roles:
       - gke_cluster_create
+      # setup monitoring agents (doesn't work with MacOS... setup done manually on GCP UI for that)
+      # for the role: git clone https://github.com/GoogleCloudPlatform/google-cloud-ops-agents-ansible.git roles/googlecloudplatform.google_cloud_ops_agents
+      #- role: googlecloudplatform.google_cloud_ops_agents
+      #  vars:
+      #    agent_type: monitoring
+      #- role: googlecloudplatform.google_cloud_ops_agents
+      #  vars:
+      #    agent_type: logging

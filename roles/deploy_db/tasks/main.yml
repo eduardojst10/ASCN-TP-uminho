@@ -11,7 +11,7 @@
         labels:
           app: "{{ mysql_app }}"
       data:
-        MYSQL_ALLOW_EMPTY_PASSWORD: "true" # only for dev purposes
+        MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
         MYSQL_HOST: "{{ mysql_host }}"
         MYSQL_PORT: "{{ mysql_port_configmap }}"
         MYSQL_USER: "{{ mysql_user }}"
@@ -19,7 +19,7 @@
         MYSQL_DATABASE: "{{ mysql_database }}"
 
 # Create a storage class to dynamically create the PVs, with GCS
-- name: create a storage class for mysql dynamic storage (using GCS)
+- name: create a storage class for mysql dynamic storage using Compute Engine CSI driver
   k8s:
     state: present
     definition:
@@ -51,10 +51,10 @@
       spec:
         storageClassName: mysql-storage
         accessModes:
-          - ReadWriteOnce # dynamic GCS needs to be readwriteonce
+          - ReadWriteOnce
         resources:
           requests:
-            storage: 200Gi # min GCS storage is 200Gi
+            storage: 200Gi # min is 200GB for GCE persistent disk
 
 # Horizontal Pod Autoscalling with 1 min Pod, 5 max
 - name: create HorizontalPodAutoscaler for mysql
