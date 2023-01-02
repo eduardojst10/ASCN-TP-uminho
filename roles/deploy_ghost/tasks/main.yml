@@ -14,7 +14,9 @@
       provisioner: pd.csi.storage.gke.io
       parameters:
         type: pd-standard
-        replication-type: regional-pd # using regional cluster
+        replication-type: regional-pd # using regional cluster (consumes double PVs)
+      reclaimPolicy: Delete # default is Delete. Available modes are Delete and Retain (https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy)
+      allowVolumeExpansion: true # this allows to expand the persistent disk volume, on the spec module
       volumeBindingMode: WaitForFirstConsumer
 
 # Create a PVC for Ghost

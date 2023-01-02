@@ -12,10 +12,6 @@
              kubectl get pvc -o name | grep "mysql" | xargs -n 1 kubectl delete;
       when: delete_data == 'true'
     
-    - name: Delete Persistent Disks from Compute Engine
-      shell: gcloud compute disks delete --quiet --region={{ gcp_region }} $(gcloud compute disks list --regions={{ gcp_region }} --filter="name:pvc*" --format="value(name)")
-      when: delete_data == 'true'
-
     - name: Delete all StorageClass
       shell: kubectl delete storageclass ghost-storage;
              kubectl delete storageclass mysql-storage
@@ -28,3 +24,14 @@
     - name: Delete Kubernetes Secret
       shell: kubectl delete secret ghost-credentials
       when: delete_data == 'true'
+
+    # reclaim policy for PVs is set at default (when PVC is deleted, the persistent disks are also deleted)
+    # in case the policy is set to 'retain', we need to manually delete these persistent disks
+    #- name: Delete Persistent Disks from Compute Engine
+    #  shell: gcloud compute disks delete --quiet --region={{ gcp_region }} $(gcloud compute disks list --regions={{ gcp_region }} --filter="name:pvc*" --format="value(name)")
+    #  # sometimes gcloud asks for a quick survey. if this happens, this
+    #  # commands can fail because of that (it tries to delete a disk with
+    #  # those lines), but it still deletes the disks. So, by ignoring these
+    #  # errors, the persistent disks are still deleted and the tasks don't stop
+    #  ignore_errors: true 
+    #  when: delete_data == 'true'

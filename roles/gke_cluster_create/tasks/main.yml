@@ -67,12 +67,17 @@
       metadata:
         name: "{{ ghost_namespace }}"
         labels:
-          name: "{{ ghost_namespace }}"
+          name: "{{ ghost_app }}"
 
 # Change kubectl context to new namespace
 - name: Change Kubectl context to Ghost namespace
   shell: kubectl config set-context --current --namespace=ghost
 
-# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet
-- name: Update cluster to enable Managed Prometheus
-  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region }}
+# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet (using gcloud)
+# https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gcloud-cli
+#- name: Update cluster to enable Managed Prometheus
+#  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region }}
+
+# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet (using kubectl)
+- name: Enable Managed Prometheus with kubectl
+  shell: kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/prometheus-engine/v0.5.0/manifests/setup.yaml; kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/prometheus-engine/v0.5.0/manifests/operator.yaml
