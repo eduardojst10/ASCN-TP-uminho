@@ -18,13 +18,5 @@
   gather_facts: yes
   roles:
     - { role: test_ghost }
-      
-- name: Check Ghost IP after second test
-  hosts: localhost
-  gather_facts: true
-  tasks:
-    - name: Check Ghost IP after second test 
-      ansible.builtin.debug:
-        msg: "ghost_ip is: {{ ghost_ip }}"
 
-#- import_playbook: undeploy-ghost.yml delete_data='true'
+- import_playbook: undeploy-ghost.yml delete_data='true'
