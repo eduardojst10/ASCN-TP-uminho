@@ -19,7 +19,7 @@ all:
   gcp_initial_node_count: 1            # Number of nodes to create. Can be changed if necessary
 
   # APP variables
-  ghost_ip: <GHOST_IP>     # this variable is updated on the Ghost Deployment role
+  ghost_ip: 35.202.71.34
   ghost_namespace: ghost
   ghost_app: ghost
   ghost_port: 2368

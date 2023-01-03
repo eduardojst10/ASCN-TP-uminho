@@ -92,9 +92,26 @@
   register: command_output
 
 # IP was retrieved, now update inventory variable
-- name: Set ghost_ip of inventory with External IP of the Service
-  set_fact:
-    ghost_ip: "{{ command_output.stdout }}"
+# using set_fact to update on inventory memory
+#- name: Set ghost_ip of inventory with External IP of the Service (to inventory memory)
+#  set_fact:
+#    ghost_ip: "{{ command_output.stdout }}"
+
+# using regex to update a line from file
+- name: Set ghost_ip of inventory with External IP of the Service (direcctly on file)
+  lineinfile:
+    path: "inventory/gcp.yml"
+    regexp: "ghost_ip:"
+    line: "  ghost_ip: {{ command_output.stdout }}"
+
+# refresh inventory otherwise it won't get the new value
+- name: Refresh inventory
+  meta: refresh_inventory
+
+# show Ghost IP
+- name: Check Ghost Service IP
+  ansible.builtin.debug:
+    msg: "ghost_ip is: {{ ghost_ip }}"
 
 # Ghost Deployment
 - name: Deploy ghost
