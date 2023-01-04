@@ -134,7 +134,3 @@
               - name: ghostdb
                 persistentVolumeClaim:
                   claimName: mysql-pv-claim
-
-# Wait for the Deployment to be Available
-- name: Wait for the mysql-deployment to be Available (checks every 5 secs)
-  shell: sh {{ script_deployment_path }} {{ mysql_deployment }}

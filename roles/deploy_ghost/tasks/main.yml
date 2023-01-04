@@ -113,6 +113,10 @@
   ansible.builtin.debug:
     msg: "ghost_ip is: {{ ghost_ip }}"
 
+# Wait for the MySQL Deployment to be Available
+- name: Wait for the mysql-deployment to be Available (checks every 5 secs)
+  shell: sh {{ script_deployment_path }} {{ mysql_deployment }}
+
 # Ghost Deployment
 - name: Deploy ghost
   k8s:

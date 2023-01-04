@@ -14,12 +14,12 @@ all:
   gcp_zone_b: us-central1-b
   gcp_zone_c: us-central1-c
   gcp_image_type: ubuntu_containerd
-  gcp_machine_type: e2-small           # Can be changed if necessary
+  gcp_machine_type: e2-medium          # Can be changed if necessary
   gcp_disk_size_gb: 100                # Can be changed if necessary
   gcp_initial_node_count: 1            # Number of nodes to create. Can be changed if necessary
 
   # APP variables
-  ghost_ip: 35.202.71.34
+  ghost_ip: 34.68.176.59
   ghost_namespace: ghost
   ghost_app: ghost
   ghost_port: 2368
