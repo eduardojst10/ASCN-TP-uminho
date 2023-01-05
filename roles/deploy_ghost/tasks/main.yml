@@ -223,7 +223,7 @@
               name: cpu
               target:
                 type: Utilization
-                averageUtilization: 90 # needs to be adjusted to cluster resources
+                averageUtilization: 150 # needs to be adjusted to cluster resources
 
 # We need the MySQL pod name to register a Ghost Admin
 - name: Retrieve the MySQL pod name
