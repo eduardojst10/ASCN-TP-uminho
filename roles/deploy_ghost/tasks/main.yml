@@ -39,25 +39,6 @@
           requests:
             storage: 200Gi # min is 200GB for GCE persistent disk
 
-# Horizontal Pod Autoscalling with 1 min Pod, 5 max
-- name: Create HorizontalPodAutoscaler for ghost
-  k8s:
-    state: present
-    definition:
-      apiVersion: autoscaling/v1
-      kind: HorizontalPodAutoscaler
-      metadata:
-        name: ghost-hpa
-        namespace: "{{ ghost_namespace }}"
-      spec:
-        maxReplicas: 5
-        minReplicas: 1
-        scaleTargetRef:
-          apiVersion: apps/v1
-          kind: Deployment
-          name: ghost
-        targetCPUUtilizationPercentage: 90
-
 # Create the Service before the Deployment
 - name: Create service to give external access to ghost app
   k8s:
@@ -112,10 +93,6 @@
 - name: Check Ghost Service IP
   ansible.builtin.debug:
     msg: "ghost_ip is: {{ ghost_ip }}"
-
-# Wait for the MySQL Deployment to be Available
-- name: Wait for the mysql-deployment to be Available (checks every 5 secs)
-  shell: sh {{ script_deployment_path }} {{ mysql_deployment }}
 
 # Ghost Deployment
 - name: Deploy ghost
@@ -211,6 +188,9 @@
                 volumeMounts:
                   - mountPath: /var/lib/ghost/content
                     name: ghost-data
+                resources:
+                  requests:
+                    cpu: "250m"
             volumes:
               - name: ghost-data
                 persistentVolumeClaim:
@@ -219,6 +199,31 @@
 # Wait for the Deployment to be Available
 - name: Wait for the Deployment to be Available (checks every 5 secs)
   shell: sh {{ script_deployment_path }} {{ ghost_deployment }}
+
+# Horizontal Pod Autoscalling with 1 min Pod, 10 max
+- name: Create HorizontalPodAutoscaler for ghost
+  k8s:
+    state: present
+    definition:
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: ghost-hpa
+        namespace: "{{ ghost_namespace }}"
+      spec:
+        maxReplicas: 10
+        minReplicas: 1
+        scaleTargetRef:
+          apiVersion: apps/v1
+          kind: Deployment
+          name: "{{ ghost_deployment }}"
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 150
 
 # We need the MySQL pod name to register a Ghost Admin
 - name: Retrieve the MySQL pod name
