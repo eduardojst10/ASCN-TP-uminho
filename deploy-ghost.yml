@@ -9,8 +9,11 @@
   roles:
     # setup application
     - role: secret
+      when: only_dashboards == 'no'
     - role: deploy_db
+      when: only_dashboards == 'no'
     - role: deploy_ghost
+      when: only_dashboards == 'no'
     # setup custom dashboards for monitoring
     - role: monitoring
       when: dashboards == 'yes'
