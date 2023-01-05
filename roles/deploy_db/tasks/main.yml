@@ -1,5 +1,5 @@
 ---
-- name: create config map for mysql
+- name: Create config map for mysql
   k8s:
     state: present
     definition:
@@ -19,7 +19,7 @@
         MYSQL_DATABASE: "{{ mysql_database }}"
 
 # Create a storage class to dynamically create the PVs, with GCS
-- name: create a storage class for mysql dynamic storage using Compute Engine CSI driver
+- name: Create a storage class for mysql dynamic storage using Compute Engine CSI driver
   k8s:
     state: present
     definition:
@@ -39,7 +39,7 @@
       volumeBindingMode: WaitForFirstConsumer
 
 # Create a PVC for MySQL
-- name: create persistent volume claim (PVC) 
+- name: Create persistent volume claim (PVC) 
   k8s:
     state: present
     definition:
@@ -59,7 +59,7 @@
             storage: 200Gi # min is 200GB for GCE persistent disk
 
 # Horizontal Pod Autoscalling with 1 min Pod, 5 max
-- name: create HorizontalPodAutoscaler for mysql
+- name: Create HorizontalPodAutoscaler for mysql
   k8s:
     state: present
     definition:
@@ -78,7 +78,7 @@
         targetCPUUtilizationPercentage: 90
 
 # Create the Service for MYSQL
-- name: create mysql service (give access to database inside the cluster)
+- name: Create mysql service (give access to database inside the cluster)
   k8s:
     state: present
     definition:
@@ -98,7 +98,7 @@
           app: "{{ mysql_app }}"
 
 # Deploy the MYSQL database
-- name: deploy mysql database
+- name: Deploy mysql database
   k8s:
     state: present
     definition:

@@ -19,7 +19,7 @@ all:
   gcp_initial_node_count: 1            # Number of nodes to create. Can be changed if necessary
 
   # APP variables
-  ghost_ip: 34.68.176.59
+  ghost_ip: 35.232.112.198
   ghost_namespace: ghost
   ghost_app: ghost
   ghost_port: 2368
@@ -44,6 +44,7 @@ all:
 
   # test variables
   delete_data: 'false'
+  dashboards: 'no'
 
   # Kubernetes Secret Service variables
   secret_ghost_mail_options_auth_user: <SECRET>

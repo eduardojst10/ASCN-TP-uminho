@@ -1,7 +1,11 @@
 ---
-# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet
+# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet (using gcloud)
 #- name: Update cluster to enable Managed Prometheus
 #  shell: gcloud container clusters update {{ gcp_cluster_name }} --enable-managed-prometheus --region {{ gcp_region }}
+
+# Update existing regional cluster: Managed Collection will be running but no metrics are generated yet (using kubectl)
+#- name: Enable Managed Prometheus with kubectl
+#  shell: kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/prometheus-engine/v0.5.0/manifests/setup.yaml; kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/prometheus-engine/v0.5.0/manifests/operator.yaml
 
 # Retrieve all the custom dashboards file names (only .json inside folder required!)
 - name: Get file names from roles/monitoring/files folder (this should have only dashboards jsons!)
@@ -12,5 +16,5 @@
 
 # Install the Custom Dashboard for Metric Evaluation
 - name: Apply command to each file in array
-  shell: gcloud monitoring dashboards create --config-from-file={{ item.path }}
+  shell: gcloud monitoring dashboards create --config-from-file='{{ item.path }}'
   with_items: "{{ file_names.files }}"

@@ -8,8 +8,9 @@
   gather_facts: true
   roles:
     # setup application
-    - secret
-    - deploy_db
-    - deploy_ghost
+    - role: secret
+    - role: deploy_db
+    - role: deploy_ghost
     # setup custom dashboards for monitoring
-    #- monitoring
+    - role: monitoring
+      when: dashboards == 'yes'
