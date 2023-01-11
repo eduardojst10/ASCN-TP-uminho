@@ -19,10 +19,11 @@ all:
   gcp_initial_node_count: 1            # Number of nodes to create. Can be changed if necessary
 
   # APP variables
-  ghost_ip: 107.178.216.191
+  ghost_ip: 34.27.236.51
+  ghost_port: 80 # service port exposed
   ghost_namespace: ghost
   ghost_app: ghost
-  ghost_port: 2368
+  ghost_internal_port: 2368 # port on the pods that the service will forward incoming traffic to
 
   # Mail variables
   ghost_mail_transport: "SMTP"

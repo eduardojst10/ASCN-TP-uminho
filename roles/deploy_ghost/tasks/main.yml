@@ -57,7 +57,7 @@
         type: LoadBalancer # regional cluster and load balancer
         ports:
           - port: "{{ ghost_port }}"
-            targetPort: "{{ ghost_port }}"
+            targetPort: "{{ ghost_internal_port }}"
             protocol: TCP
         selector:
           app: "{{ ghost_app }}"
@@ -122,7 +122,7 @@
                 image: ghost:5.14.1
                 imagePullPolicy: "IfNotPresent"
                 ports:
-                  - containerPort: "{{ ghost_port }}"
+                  - containerPort: "{{ ghost_internal_port }}"
                 env:
                   # development or production
                   - name: "NODE_ENV"
