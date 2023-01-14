@@ -1,6 +1,6 @@
 ---
-# Create a storage class to dynamically create the PVs, with GCS
-- name: Create a storage class for ghost dynamic storage using Compute Engine CSI driver
+# Create a storage class to dynamically create the PVs, with Filestore
+- name: Create a storage class for ghost storage Filestore CSI driver
   k8s:
     state: present
     definition:
@@ -11,13 +11,13 @@
         namespace: "{{ ghost_namespace }}"
         labels:
           app: "{{ ghost_app }}"
-      provisioner: pd.csi.storage.gke.io
+      provisioner: filestore.csi.storage.gke.io
       parameters:
-        type: pd-standard
-        replication-type: regional-pd # using regional cluster (consumes double PVs)
+        tier: standard
+        network: default
       reclaimPolicy: Delete # default is Delete. Available modes are Delete and Retain (https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy)
       allowVolumeExpansion: true # this allows to expand the persistent disk volume, on the spec module
-      volumeBindingMode: WaitForFirstConsumer
+      volumeBindingMode: Immediate
 
 # Create a PVC for Ghost
 - name: Create persistent volume claim (PVC) for ghost data
@@ -34,10 +34,10 @@
       spec:
         storageClassName: ghost-storage
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteMany # multiple pods of multiple nodes can read and write to the volume
         resources:
           requests:
-            storage: 200Gi # min is 200GB for GCE persistent disk
+            storage: 1Ti # min is 1Ti for Filestore instances
 
 # Create the Service before the Deployment
 - name: Create service to give external access to ghost app
@@ -79,7 +79,7 @@
 #    ghost_ip: "{{ command_output.stdout }}"
 
 # using regex to update a line from file
-- name: Set ghost_ip of inventory with External IP of the Service (direcctly on file)
+- name: Set ghost_ip of inventory with External IP of the Service (directly on file)
   lineinfile:
     path: "inventory/gcp.yml"
     regexp: "ghost_ip:"
@@ -185,12 +185,12 @@
                       secretKeyRef:
                         name: ghost-credentials
                         key: ghost_mail_options_secure
-                volumeMounts:
-                  - mountPath: /var/lib/ghost/content
-                    name: ghost-data
                 resources:
                   requests:
                     cpu: "250m"
+                volumeMounts:
+                  - mountPath: /var/lib/ghost/content
+                    name: ghost-data
             volumes:
               - name: ghost-data
                 persistentVolumeClaim:
@@ -224,6 +224,7 @@
               target:
                 type: Utilization
                 averageUtilization: 150 # needs to be adjusted to cluster resources
+  when: deploy_ghost_hpa==true
 
 # We need the MySQL pod name to register a Ghost Admin
 - name: Retrieve the MySQL pod name
@@ -231,7 +232,7 @@
   register: mysql_pod
 
 # wait a few moments to sync
-- name: Wait a few moments to sync (10 secs) before registering Ghost Admin
+- name: Wait a few moments to sync and retrieve the pod name (10secs), before registering Ghost Admin
   wait_for:
     timeout: 10
 

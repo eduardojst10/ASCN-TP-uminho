@@ -1,4 +1,5 @@
 ---
+# config map with variables for the server configuration
 - name: Create config map for mysql
   k8s:
     state: present
@@ -18,7 +19,7 @@
         MYSQL_PASSWORD: "{{ mysql_user_password }}"
         MYSQL_DATABASE: "{{ mysql_database }}"
 
-# Create a storage class to dynamically create the PVs, with GCS
+# Create a storage class to dynamically create the PVs, with GCE
 - name: Create a storage class for mysql dynamic storage using Compute Engine CSI driver
   k8s:
     state: present
@@ -53,7 +54,7 @@
       spec:
         storageClassName: mysql-storage
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteOnce # multiple pods of the same node can read and write to the volume, but not from multiple nodes
         resources:
           requests:
             storage: 200Gi # min is 200GB for GCE persistent disk
@@ -146,3 +147,4 @@
               target:
                 type: Utilization
                 averageUtilization: 150 # needs to be adjusted to cluster resources
+  when: deploy_db_hpa==true
